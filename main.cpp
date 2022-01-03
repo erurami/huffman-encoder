@@ -31,7 +31,7 @@ int WINAPI WinMain(
 
     if (lstrlen(lpCmdLine) == 0)
     {
-        // TODO : Open Base Extract and Compress window.
+        // TODO : Open Base Extraction and Compression window.
         MessageBox(NULL, TEXT("no arguments received."), TEXT(""), MB_ICONINFORMATION);
         return 0;
     }
