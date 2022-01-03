@@ -15,6 +15,8 @@
     }
 
 
+HINSTANCE G_H_Instance;
+
 
 int WINAPI WinMain(
         HINSTANCE hInstance,
@@ -22,6 +24,19 @@ int WINAPI WinMain(
         PSTR lpCmdLine,
         int nCmdShow)
 {
+
+    G_H_Instance = hInstance;
+
+
+
+    if (lstrlen(lpCmdLine) == 0)
+    {
+        // TODO : Open Base Extract and Compress window.
+        MessageBox(NULL, TEXT("no arguments received."), TEXT(""), MB_ICONINFORMATION);
+        return 0;
+    }
+
+
 
     // TODO : this code can't receive multiple files.
 
