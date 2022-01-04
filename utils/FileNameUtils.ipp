@@ -41,6 +41,13 @@ bool IsWritableFile(PSTR lpString)
 
 
 
+
+
+
+
+
+
+
 int GetFileExtension(
         PSTR lpFileExtension,
         PSTR lpFilePath,
@@ -85,6 +92,10 @@ int GetFileExtension(
 }
 
 
+
+
+
+
 bool IsHuffFile(PSTR lpPath)
 {
     TCHAR lp_file_extension[10];
@@ -101,3 +112,9 @@ bool IsHuffFile(PSTR lpPath)
 
     return true;
 }
+
+
+
+
+
+
