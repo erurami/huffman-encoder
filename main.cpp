@@ -1,5 +1,7 @@
 
+
 #include <Windows.h>
+#include <Commctrl.h>
 
 #include "libs\libs\huffman.hpp"
 
@@ -8,6 +10,11 @@
 #pragma comment(lib,"User32.lib")
 #pragma comment(lib,"gdi32.lib")
 #pragma comment(lib, "Comdlg32.lib")
+
+// thanks microsoft docs
+#pragma comment(linker,"\"/manifestdependency:type='win32' \
+name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
+processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 
 
@@ -22,6 +29,9 @@
 
 
 #define CWM_REGISTERFILENAME 0x0400
+#define CPM_STARTCOMPRESS 0x401
+#define CPM_UPDATEPROGRESS 0x402
+
 
 
 
@@ -78,11 +88,20 @@ int WINAPI WinMain(
 #define COMW_WINDOW_HEIGHT 210
 #define COMW_WINDOW_WIDTH  500
 
-LRESULT CALLBACK CompressionGuiProc(
-        HWND hWnd,
-        UINT msg,
-        WPARAM wp,
-        LPARAM lp);
+
+
+
+struct CompressionInfos
+{
+    LPTSTR strFrom;
+    LPTSTR strTo;
+
+    bool blKeepOriginal;
+
+
+    long* npProgress;
+    int * npCompressionStage;
+};
 
 LRESULT CALLBACK CompressionWizardProc(
         HWND hWnd,
@@ -110,7 +129,6 @@ int EasyCompressionWizard(PSTR lpFilePath)
     if (!RegisterClass(&wincMainWizard))
     {
         SHOW_ERROR_AND_RETURN(TEXT("error registering window class"));
-        return -1;
     }
 
 
@@ -130,7 +148,6 @@ int EasyCompressionWizard(PSTR lpFilePath)
     if (hWizardWnd == NULL)
     {
         SHOW_ERROR_AND_RETURN(TEXT("error couldn't create window"));
-        return -1;
     }
 
 
@@ -166,6 +183,8 @@ int EasyCompressionWizard(PSTR lpFilePath)
 
 
 HPEN DrawArrowCompression(HDC hdc);
+
+bool StartCompressionWithGUI(CompressionInfos* pCompInfo);
 
 #define SELECT_BUTTON_ID 1
 #define KEEPORGFILE_CHECKBOX_ID 2
@@ -354,6 +373,26 @@ LRESULT CALLBACK CompressionWizardProc(
 
                 case COMPRESS_BUTTON_ID:
                     {
+                        CompressionInfos comp_infos;
+
+                        comp_infos.strFrom        = str_file_path_from;
+                        comp_infos.strTo          = str_file_path_to;
+
+                        if (SendMessage(hKeepOrgFileCheckBox, BM_GETCHECK, 0, 0) == BST_CHECKED)
+                        {
+                            comp_infos.blKeepOriginal = true;
+                        }
+                        else
+                        {
+                            comp_infos.blKeepOriginal = false;
+                        }
+
+
+                        if (StartCompressionWithGUI(&comp_infos) == true)
+                        {
+                            DeleteObject(hFontText);
+                            DestroyWindow(hWnd);
+                        }
                     }
                     break;
 
@@ -379,6 +418,7 @@ LRESULT CALLBACK CompressionWizardProc(
 #undef COMPRESS_BUTTON_ID
 #undef CANCEL_BUTTON_ID
 
+
 HPEN DrawArrowCompression(HDC hdc)
 {
     HPEN hPen;
@@ -394,6 +434,209 @@ HPEN DrawArrowCompression(HDC hdc)
 }
 
 
+
+#define PROGRESS_WND_WIDTH  400
+#define PROGRESS_WND_HEIGHT 400
+
+LRESULT CALLBACK CompressionGuiProc(
+        HWND hWnd,
+        UINT msg,
+        WPARAM wp,
+        LPARAM lp);
+
+bool StartCompressionWithGUI(CompressionInfos* pCompInfo)
+{
+
+    WNDCLASS wincProgressGUI;
+
+    wincProgressGUI.style         = CS_HREDRAW | CS_VREDRAW;
+    wincProgressGUI.lpfnWndProc   = CompressionGuiProc;
+    wincProgressGUI.cbClsExtra    = 0;
+    wincProgressGUI.cbWndExtra    = 0;
+    wincProgressGUI.hInstance     = G_H_Instance;
+    wincProgressGUI.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
+    wincProgressGUI.hCursor       = LoadCursor(NULL, IDC_ARROW);
+    wincProgressGUI.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+    wincProgressGUI.lpszMenuName  = NULL;
+    wincProgressGUI.lpszClassName = TEXT("CompressionProgress");
+
+
+    if (!RegisterClass(&wincProgressGUI))
+    {
+        MessageBox(NULL, TEXT("error registering window class"), TEXT("error"), MB_ICONERROR);
+        return false;
+    }
+
+
+
+
+    HWND hProgressWnd;
+    hProgressWnd = CreateWindow(
+            TEXT("CompressionProgress"), TEXT("Compressing..."),
+            WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
+            CW_USEDEFAULT, CW_USEDEFAULT,
+            PROGRESS_WND_WIDTH, PROGRESS_WND_HEIGHT,
+            NULL, NULL, G_H_Instance, NULL);
+
+    if (hProgressWnd == NULL)
+    {
+        MessageBox(NULL, TEXT("error couldn't create window"), TEXT("error"), MB_ICONERROR);
+        return false;
+    }
+
+
+
+
+    ShowWindow(hProgressWnd, SW_SHOW);
+
+    SendMessage(hProgressWnd, CPM_STARTCOMPRESS, (WPARAM)pCompInfo, 0);
+
+    return true;
+
+}
+
+
+
+
+
+DWORD WINAPI CompressThreadFunc(LPVOID vdParam);
+
+#define TIMER_ID_UPDATE_PROGRESS 1
+
+LRESULT CALLBACK CompressionGuiProc(
+        HWND hWnd,
+        UINT msg,
+        WPARAM wp,
+        LPARAM lp)
+{
+
+    static CompressionInfos comp_infos;
+
+
+    static long n_progress_percentage;
+    static int  n_compression_stage;
+
+
+    static HWND h_progress_bar;
+    static DWORD dw_compression_thread_id;
+
+
+
+
+    switch (msg)
+    {
+
+
+
+        case WM_CLOSE:
+            if (MessageBox(hWnd, TEXT("cancel?"), TEXT("message"), MB_YESNO | MB_ICONINFORMATION) == IDYES)
+            {
+                // some canceling process e.g. delete files..
+                DestroyWindow(hWnd);
+                PostQuitMessage(0);
+            }
+            return 0;
+
+
+
+        case WM_CREATE:
+
+            h_progress_bar = CreateWindow(
+                    PROGRESS_CLASS, TEXT("Progress"),
+                    WS_CHILD | WS_VISIBLE | PBS_SMOOTH,
+                    10, 10, 300, 30,
+                    hWnd, NULL, G_H_Instance, NULL);
+
+
+            PostMessage(h_progress_bar, PBM_SETRANGE, 0, MAKEWPARAM(0, 100));
+
+
+            //                                       Å´updating progress frequency
+            SetTimer(hWnd, TIMER_ID_UPDATE_PROGRESS, 10, NULL);
+
+            return 0;
+
+
+
+        case WM_TIMER:
+            switch (wp)
+            {
+
+                case TIMER_ID_UPDATE_PROGRESS:
+                    PostMessage(h_progress_bar, PBM_SETPOS, n_progress_percentage, 0);
+                    break;
+
+            }
+            return 0;
+
+
+
+        case CPM_STARTCOMPRESS:
+            {
+
+                comp_infos = *(CompressionInfos*)wp;
+
+                comp_infos.npProgress         = &n_progress_percentage;
+                comp_infos.npCompressionStage = &n_compression_stage;
+
+                CreateThread(NULL, 0, CompressThreadFunc, (LPVOID)&comp_infos, 0, &dw_compression_thread_id);
+
+                InvalidateRect(hWnd, NULL, TRUE);
+            }
+            return 0;
+
+
+
+        case CPM_UPDATEPROGRESS:
+            {
+                PostMessage(h_progress_bar, PBM_SETPOS, wp, 0);
+            }
+            return 0;
+
+
+
+        case WM_PAINT:
+            {
+
+                HDC hdc;
+                PAINTSTRUCT ps;
+
+                hdc = BeginPaint(hWnd, &ps);
+
+                // TextOut(hdc, 10, 10, comp_info.strFrom, lstrlen(comp_info.strFrom));
+
+                // TextOut(hdc, 10, 30, TEXT("to")       , 2);
+
+                // TextOut(hdc, 10, 50, comp_info.strTo  , lstrlen(comp_info.strTo  ));
+
+                EndPaint(hWnd, &ps);
+
+            }
+            return 0;
+
+
+
+        default:
+            return DefWindowProc(hWnd, msg, wp, lp);
+    }
+}
+#undef TIMER_ID_UPDATE_PROGRESS
+
+DWORD WINAPI CompressThreadFunc(LPVOID vdParam)
+{
+    CompressionInfos comp_infos;
+    comp_infos = *(CompressionInfos*)vdParam;
+
+
+    for (int i = 0; i < 101; i++)
+    {
+        *comp_infos.npProgress = i;
+        Sleep(100);
+    }
+
+
+    ExitThread(TRUE);
+}
 
 
 
