@@ -8,6 +8,12 @@
 // delete .manifest without the command, the app will look "old".
 //
 // todo : make make
+//
+// TODO : s/step/stage/g
+//           stage means the variable cantains the step or stage of compression / extraction where 
+//           the program is running now.
+//
+// TODO : move all prototype and struct definition to here (beginning of the program)
 
 #include <Windows.h>
 #include <Commctrl.h>
@@ -507,10 +513,14 @@ bool StartCompressionWithGUI(CompressionInfos* pCompInfo)
 
 
 
+#define COMPRESSION_END_CODE_SUCCESS         1
+#define COMPRESSION_END_CODE_ERROR           2
+#define COMPRESSION_END_CODE_FAILED_OPENFILE 3
 
 DWORD WINAPI CompressThreadFunc(LPVOID vdParam);
 
 #define TIMER_ID_UPDATE_PROGRESS 1
+#define TIMER_ID_GET_THREAD_STATE 2
 
 LRESULT CALLBACK CompressionGuiProc(
         HWND hWnd,
@@ -527,7 +537,9 @@ LRESULT CALLBACK CompressionGuiProc(
 
 
     static HWND h_progress_bar;
-    static DWORD dw_compression_thread_id;
+    static HANDLE h_compression_thread;
+
+    static DWORD dw_thread_id;
 
 
 
@@ -552,7 +564,7 @@ LRESULT CALLBACK CompressionGuiProc(
 
             h_progress_bar = CreateWindow(
                     PROGRESS_CLASS, TEXT("Progress"),
-                    WS_CHILD | WS_VISIBLE | PBS_SMOOTH,
+                    WS_CHILD | WS_VISIBLE ,
                     10, 10, 300, 30,
                     hWnd, NULL, G_H_Instance, NULL);
 
@@ -560,8 +572,9 @@ LRESULT CALLBACK CompressionGuiProc(
             PostMessage(h_progress_bar, PBM_SETRANGE, 0, MAKEWPARAM(0, 100));
 
 
-            //                                       Å´updating progress frequency
-            SetTimer(hWnd, TIMER_ID_UPDATE_PROGRESS, 10, NULL);
+            //                                        Å´updating progress frequency
+            SetTimer(hWnd, TIMER_ID_UPDATE_PROGRESS , 10, NULL);
+            SetTimer(hWnd, TIMER_ID_GET_THREAD_STATE, 100, NULL);
 
             return 0;
 
@@ -575,6 +588,48 @@ LRESULT CALLBACK CompressionGuiProc(
                     PostMessage(h_progress_bar, PBM_SETPOS, n_progress_percentage, 0);
                     break;
 
+                case TIMER_ID_GET_THREAD_STATE:
+                    {
+                        DWORD dw_thread_state;
+                        if (!GetExitCodeThread(h_compression_thread, &dw_thread_state))
+                        {
+                            return 0;
+                        }
+
+
+                        if (dw_thread_state == STILL_ACTIVE)
+                        {
+                            return 0;
+                        }
+
+
+                        KillTimer(hWnd, TIMER_ID_GET_THREAD_STATE);
+
+                        switch (dw_thread_state)
+                        {
+
+                            case COMPRESSION_END_CODE_SUCCESS:
+                                MessageBox(NULL, TEXT("compression finished"), TEXT(""), MB_ICONINFORMATION);
+                                break;
+
+                            case COMPRESSION_END_CODE_ERROR:
+                                MessageBox(NULL, TEXT("an error ocuured"), TEXT(""), MB_ICONINFORMATION);
+                                break;
+
+                            case COMPRESSION_END_CODE_FAILED_OPENFILE:
+                                MessageBox(NULL, TEXT("failed to open file"), TEXT(""), MB_ICONINFORMATION);
+                                break;
+
+                            default:
+                                MessageBox(NULL, TEXT("finifhed with unexpected finish code"), TEXT(""), MB_ICONINFORMATION);
+                                break;
+
+                        }
+
+                        DestroyWindow(hWnd);
+                        PostQuitMessage(0);
+                    }
+                    break;
             }
             return 0;
 
@@ -588,7 +643,7 @@ LRESULT CALLBACK CompressionGuiProc(
                 comp_infos.npProgress         = &n_progress_percentage;
                 comp_infos.npCompressionStage = &n_compression_stage;
 
-                CreateThread(NULL, 0, CompressThreadFunc, (LPVOID)&comp_infos, 0, &dw_compression_thread_id);
+                h_compression_thread = CreateThread(NULL, 0, CompressThreadFunc, (LPVOID)&comp_infos, 0, &dw_thread_id);
 
                 InvalidateRect(hWnd, NULL, TRUE);
             }
@@ -631,22 +686,57 @@ LRESULT CALLBACK CompressionGuiProc(
 }
 #undef TIMER_ID_UPDATE_PROGRESS
 
+struct ProgressUpdateInfos
+{
+    int * npStage;
+    long* npProgress;
+};
+
+void CallbackForCompression(long progress, int stage, void* param);
+
 DWORD WINAPI CompressThreadFunc(LPVOID vdParam)
 {
     CompressionInfos comp_infos;
     comp_infos = *(CompressionInfos*)vdParam;
 
 
-    for (int i = 0; i < 101; i++)
+    ProgressUpdateInfos prog_update_infos;
+    prog_update_infos.npStage    = comp_infos.npCompressionStage;
+    prog_update_infos.npProgress = comp_infos.npProgress;
+
+
+
+    FILE* p_file1;
+    FILE* p_file2;
+
+    if (fopen_s(&p_file1, comp_infos.strFrom, "rb") != 0)
     {
-        *comp_infos.npProgress = i;
-        Sleep(100);
+        ExitThread(COMPRESSION_END_CODE_FAILED_OPENFILE);
+    }
+
+    if (fopen_s(&p_file2, comp_infos.strTo, "wb") != 0)
+    {
+        ExitThread(COMPRESSION_END_CODE_FAILED_OPENFILE);
     }
 
 
-    ExitThread(TRUE);
+    Compress(p_file1, p_file2, CallbackForCompression, (void*)&prog_update_infos);
+
+
+    fclose(p_file1);
+    fclose(p_file2);
+
+
+    ExitThread(COMPRESSION_END_CODE_SUCCESS);
 }
 
+
+void CallbackForCompression(long progress, int stage, void* param)
+{
+    *(((ProgressUpdateInfos*)param)->npStage)    = stage;
+
+    *(((ProgressUpdateInfos*)param)->npProgress) = progress;
+}
 
 
 
