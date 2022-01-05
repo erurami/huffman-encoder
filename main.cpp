@@ -1,4 +1,11 @@
 
+// if you don't want .manifest file in your directory, you can run this command
+//      ```
+//      mt.exe -manifest main.exe.manifest -outputresource:main.exe;1
+//      ```
+//
+// otherwise you need .manifest to keep visual style of this app, and if you 
+// delete .manifest without the command, the app will look "old".
 
 #include <Windows.h>
 #include <Commctrl.h>
