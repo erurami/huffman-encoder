@@ -6,6 +6,8 @@
 //
 // otherwise you need .manifest to keep visual style of this app, and if you 
 // delete .manifest without the command, the app will look "old".
+//
+// todo : make make
 
 #include <Windows.h>
 #include <Commctrl.h>
