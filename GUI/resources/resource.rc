@@ -1,0 +1,17 @@
+
+#include "Ids.h"
+
+STRINGTABLE
+{
+    STRING_APPLICATION_NAME "unnamed application"
+}
+
+MAINMENU MENU
+{
+    POPUP "file(&F)"
+    {
+        MENUITEM "open(&O)", MENUID_OPEN
+        MENUITEM SEPARATOR
+        MENUITEM "exit", MENUID_EXIT
+    }
+}

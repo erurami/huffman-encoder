@@ -33,7 +33,7 @@ bool StartCompressionWithGUI(CompressionInfos* pCompInfo)
     wincProgressGUI.lpfnWndProc   = wndprocCompressionProgress;
     wincProgressGUI.cbClsExtra    = 0;
     wincProgressGUI.cbWndExtra    = 0;
-    wincProgressGUI.hInstance     = _G_GUI_Comp_hpp_H_Instance;
+    wincProgressGUI.hInstance     = _G_GUI_GUI_Comp_hpp_H_Instance;
     wincProgressGUI.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
     wincProgressGUI.hCursor       = LoadCursor(NULL, IDC_ARROW);
     wincProgressGUI.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
@@ -57,7 +57,7 @@ bool StartCompressionWithGUI(CompressionInfos* pCompInfo)
             WS_TILED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
             CW_USEDEFAULT, CW_USEDEFAULT,
             COMPPROG_WINDOW_WIDTH, COMPPROG_WINDOW_HEIGHT,
-            NULL, NULL, _G_GUI_Comp_hpp_H_Instance, NULL);
+            NULL, NULL, _G_GUI_GUI_Comp_hpp_H_Instance, NULL);
 
     if (hProgressWnd == NULL)
     {
@@ -181,26 +181,26 @@ LRESULT CALLBACK wndprocCompressionProgress(
                         PROGRESS_CLASS, TEXT("Progress"),
                         WS_CHILD | WS_VISIBLE,
                         10, 75, window_width - 20, 25,
-                        hWnd, NULL, _G_GUI_Comp_hpp_H_Instance, NULL);
+                        hWnd, NULL, _G_GUI_GUI_Comp_hpp_H_Instance, NULL);
 
 
                 CreateWindow(
                         TEXT("STATIC"), TEXT(""),
                         WS_CHILD | WS_VISIBLE,
                         0, 125, window_width, window_height - 125,
-                        hWnd, NULL, _G_GUI_Comp_hpp_H_Instance, NULL);
+                        hWnd, NULL, _G_GUI_GUI_Comp_hpp_H_Instance, NULL);
 
                 h_button_cancel = CreateWindow(
                         TEXT("BUTTON"), TEXT("Cancel"),
                         WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
                         window_width - 110, 140, 100, 25,
-                        hWnd, (HMENU)BUTTON_ID_CANCEL, _G_GUI_Comp_hpp_H_Instance, NULL);
+                        hWnd, (HMENU)BUTTON_ID_CANCEL, _G_GUI_GUI_Comp_hpp_H_Instance, NULL);
 
                 h_button_playpause = CreateWindow(
                         TEXT("BUTTON"), TEXT("Pause"),
                         WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
                         window_width - 220, 140, 100, 25,
-                        hWnd, (HMENU)BUTTON_ID_PLAYPAUSE, _G_GUI_Comp_hpp_H_Instance, NULL);
+                        hWnd, (HMENU)BUTTON_ID_PLAYPAUSE, _G_GUI_GUI_Comp_hpp_H_Instance, NULL);
 
 
                 SendMessage(h_button_cancel   , WM_SETFONT, (WPARAM)h_font_compression_stage, TRUE);

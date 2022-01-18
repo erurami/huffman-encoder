@@ -12,8 +12,6 @@
 // TODO : s/step/stage/g
 //           stage means the variable cantains the step or stage of compression / extraction where 
 //           the program is running now.
-//
-// TODO : move all prototype and struct definition to here (beginning of the program)
 
 #pragma comment(lib,"User32.lib")
 #pragma comment(lib,"gdi32.lib")
@@ -29,10 +27,12 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 #include "GUI\GUI-comp.hpp"
 #include "GUI\GUI-extc.hpp"
+#include "GUI\GUI.hpp"
 
-#include "GUI\libs\libs\huffman.hpp"
+#include "GUI\resources\Ids.h"
 
 #include "utils\FileNameUtils.hpp"
+
 
 #include <Windows.h>
 
@@ -43,8 +43,6 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
         MessageBox(NULL, text, TEXT("error"), MB_ICONERROR);\
         return -1;\
     }
-
-#define APPLICATION_NAME TEXT("untitled application")
 
 
 
@@ -80,6 +78,7 @@ int WINAPI WinMain(
     {
         // TODO : Open Base Extraction and Compression window.
         MessageBox(NULL, TEXT("no arguments received."), TEXT(""), MB_ICONINFORMATION);
+        MainApplication();
         return 0;
     }
 
@@ -152,9 +151,13 @@ int EasyCompressionWizard(PSTR lpFilePath)
 
     /* ======================== */
 
+    TCHAR strAppName[100];
+
+    LoadString(G_H_Instance, STRING_APPLICATION_NAME, strAppName, 100);
+
     HWND hWizardWnd;
     hWizardWnd = CreateWindow(
-            TEXT("CompressionWizard"), APPLICATION_NAME,
+            TEXT("CompressionWizard"), strAppName,
             WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
             CW_USEDEFAULT, CW_USEDEFAULT,
             COMPWIZD_WINDOW_WIDTH, COMPWIZD_WINDOW_HEIGHT,
@@ -395,6 +398,7 @@ LRESULT CALLBACK WndprocCompressionWizard(
                         CompressionInfos comp_infos;
 
                         comp_infos.strFrom        = str_file_path_from;
+                        // TODO : check file name.
                         comp_infos.strTo          = str_file_path_to;
 
                         if (SendMessage(hKeepOrgFileCheckBox, BM_GETCHECK, 0, 0) == BST_CHECKED)
