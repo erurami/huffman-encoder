@@ -1,0 +1,3 @@
+[submodule "GUI/libs"]
+	path = GUI/libs
+	url = https://github.com/erurami/huffman-coding-core.git
