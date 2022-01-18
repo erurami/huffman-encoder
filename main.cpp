@@ -7,11 +7,6 @@
 // otherwise you need .manifest to keep visual style of this app, and if you 
 // delete .manifest without the command, the app will look "old".
 //
-// todo : make make
-//
-// TODO : s/step/stage/g
-//           stage means the variable cantains the step or stage of compression / extraction where 
-//           the program is running now.
 
 #pragma comment(lib,"User32.lib")
 #pragma comment(lib,"gdi32.lib")
@@ -46,6 +41,7 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 
 
+// 400 - 499
 #define CWM_REGISTERFILENAME 0x0400
 
 
@@ -76,8 +72,6 @@ int WINAPI WinMain(
 
     if (lstrlen(lpCmdLine) == 0)
     {
-        // TODO : Open Base Extraction and Compression window.
-        MessageBox(NULL, TEXT("no arguments received."), TEXT(""), MB_ICONINFORMATION);
         MainApplication();
         return 0;
     }
