@@ -5,10 +5,14 @@
 
 #include "..\utils\FileNameUtils.hpp"
 
+#include "wndmessages.h"
+
 #include <windows.h>
 #include <shellapi.h>
 #include <shlwapi.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #pragma comment(lib, "gdi32.lib"  )
 #pragma comment(lib, "Shell32.lib")
@@ -257,36 +261,39 @@ LRESULT CALLBACK WndprocMainWindow(
 
 
         case WM_KEYDOWN:
-            if (wp == VK_RETURN)
+            switch (wp)
             {
-                PostMessage(hWnd, MM_STARTENCODE, 0, 0);
-            }
-            return 0;
+
+                case VK_RETURN:
+                    PostMessage(hWnd, MM_STARTENCODE, 0, 0);
+                    break;
 
 
+                case 'O':
+                    if (GetKeyState(VK_CONTROL) < 0)
+                    {
+                        PostMessage(hWnd, MM_OPENFILE, 0, 0);
+                    }
+                    break;
 
-        case WM_PAINT:
-            {
-                HDC hdc;
-                PAINTSTRUCT ps;
 
-                hdc = BeginPaint(hWnd, &ps);
-                EndPaint(hWnd, &ps);
+                case 'E':
+                    if (GetKeyState(VK_CONTROL) < 0)
+                    {
+                        SendMessage(hWnd, MM_SETENCODETYPE, 1, 0);
+                        PostMessage(hWnd, MM_STARTENCODE, 0, 0);
+                    }
+                    break;
 
-                // hdc = BeginPaint(hStaticBackground, &ps);
-                // SelectObject(hdc, hFontText);
 
-                // if (bl_is_input_selected)
-                // {
-                //     TextOut(hdc, 10, 10, str_file_path_input, lstrlen(str_file_path_input));
-                // }
+                case 'C':
+                    if (GetKeyState(VK_CONTROL) < 0)
+                    {
+                        SendMessage(hWnd, MM_SETENCODETYPE, 1, 0);
+                        PostMessage(hWnd, MM_STARTENCODE, 0, 0);
+                    }
+                    break;
 
-                // if (bl_is_output_selected)
-                // {
-                //     TextOut(hdc, 10, 70, str_file_path_output, lstrlen(str_file_path_output));
-                // }
-
-                // EndPaint(hStaticBackground, &ps);
             }
             return 0;
 
@@ -346,29 +353,7 @@ LRESULT CALLBACK WndprocMainWindow(
 
 
                 case MENUID_OPEN:
-                    {
-                        OPENFILENAME ofn = {0};
-
-                        ofn.lStructSize = sizeof (OPENFILENAME);
-                        ofn.hwndOwner = hWnd;
-
-                        ofn.lpstrFilter = TEXT("All files {*.*}\0*.*\0");
-                        ofn.lpstrCustomFilter = str_custom;
-                        ofn.nMaxCustFilter = 256;
-                        ofn.nFilterIndex = 0;
-
-                        ofn.lpstrFile = str_file_path_input;
-                        ofn.nMaxFile = MAX_PATH;
-
-                        ofn.Flags = OFN_EXPLORER;
-
-                        ofn.lpstrDefExt = NULL;
-
-
-                        GetOpenFileName(&ofn);
-
-                        SendMessage(hWnd, MM_INPUTSELECTED, 0, 0);
-                    }
+                    PostMessage(hWnd, MM_OPENFILE, 0, 0);
                     break;
 
 
@@ -378,22 +363,17 @@ LRESULT CALLBACK WndprocMainWindow(
 
 
                 case MENUID_COMPRESS:
-                    SendMessage(hComboboxEncodeType, CB_SETCURSEL, 0, 0);
+                    SendMessage(hWnd, MM_SETENCODETYPE, 0, 0);
                     PostMessage(hWnd, MM_STARTENCODE, 0, 0);
                     break;
 
 
                 case MENUID_EXTRACT:
-                    SendMessage(hComboboxEncodeType, CB_SETCURSEL, 1, 0);
+                    SendMessage(hWnd, MM_SETENCODETYPE, 1, 0);
                     PostMessage(hWnd, MM_STARTENCODE, 0, 0);
                     break;
 
             }
-            return 0;
-
-
-
-        case WM_MENUSELECT:
             return 0;
 
 
@@ -405,10 +385,67 @@ LRESULT CALLBACK WndprocMainWindow(
                 hDroppedInfos = (HDROP)wp;
 
                 // todo : Support multiple files.
-                // TODO : do not accept foders.
-                DragQueryFileA(hDroppedInfos, 0, str_file_path_input, MAX_PATH);
+
+                TCHAR str_file_path_dropped[MAX_PATH];
+                DragQueryFileA(hDroppedInfos, 0, str_file_path_dropped, MAX_PATH);
+
+                struct stat s;
+                if (stat(str_file_path_dropped, &s) == 0)
+                {
+                    if (s.st_mode & S_IFREG)
+                    {
+                        lstrcpyn(str_file_path_input, str_file_path_dropped, MAX_PATH);
+                        PostMessage(hWnd, MM_INPUTSELECTED, 0, 0);
+                    }
+                }
 
                 DragFinish(hDroppedInfos);
+
+            }
+            return 0;
+
+
+
+        case CPM_ENDCOMPRESSION:
+            ShowWindow(hWnd, SW_SHOW);
+            return 0;
+
+
+
+        case EPM_ENDEXTRACTION:
+            ShowWindow(hWnd, SW_SHOW);
+            return 0;
+
+
+
+        case MM_SETENCODETYPE:
+            SendMessage(hComboboxEncodeType, CB_SETCURSEL, wp, 0);
+            SendMessage(hWnd, MM_GENERATEOUTPUT, 0, 0);
+            return 0;
+
+
+
+        case MM_OPENFILE:
+            {
+                OPENFILENAME ofn = {0};
+
+                ofn.lStructSize = sizeof (OPENFILENAME);
+                ofn.hwndOwner = hWnd;
+
+                ofn.lpstrFilter = TEXT("All files {*.*}\0*.*\0");
+                ofn.lpstrCustomFilter = str_custom;
+                ofn.nMaxCustFilter = 256;
+                ofn.nFilterIndex = 0;
+
+                ofn.lpstrFile = str_file_path_input;
+                ofn.nMaxFile = MAX_PATH;
+
+                ofn.Flags = OFN_EXPLORER;
+
+                ofn.lpstrDefExt = NULL;
+
+
+                GetOpenFileName(&ofn);
 
                 SendMessage(hWnd, MM_INPUTSELECTED, 0, 0);
             }
@@ -442,10 +479,9 @@ LRESULT CALLBACK WndprocMainWindow(
                     }
 
 
-                    if (StartCompressionWithGUI(&comp_infos) == true)
+                    if (StartCompressionWithGUI(&comp_infos, hWnd) == true)
                     {
-                        DeleteObject(hFontText);
-                        DestroyWindow(hWnd);
+                        ShowWindow(hWnd, SW_HIDE);
                     }
                 }
                 else if (n_encode_type == 1)
@@ -465,11 +501,9 @@ LRESULT CALLBACK WndprocMainWindow(
                     }
 
 
-                    // TODO : HIDE window while extraction, SHOW window after extraction.
-                    if (StartExtractionWithGUI(&extc_infos) == true)
+                    if (StartExtractionWithGUI(&extc_infos, hWnd) == true)
                     {
-                        DeleteObject(hFontText);
-                        DestroyWindow(hWnd);
+                        ShowWindow(hWnd, SW_HIDE);
                     }
                 }
             }
@@ -545,7 +579,6 @@ LRESULT CALLBACK WndprocMainWindow(
             SetWindowText(hEditInputFilePath, str_file_path_input);
             bl_is_input_selected = true;
 
-            InvalidateRect(hWnd, NULL, TRUE);
             return 0;
 
 
@@ -555,7 +588,6 @@ LRESULT CALLBACK WndprocMainWindow(
             SetWindowText(hEditOutputFilePath, str_file_path_output);
             bl_is_output_selected = true;
 
-            InvalidateRect(hWnd, NULL, TRUE);
             return 0;
 
 

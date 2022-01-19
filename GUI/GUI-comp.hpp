@@ -8,10 +8,6 @@
 #define COMPPROG_WINDOW_WIDTH  400
 #define COMPPROG_WINDOW_HEIGHT 220
 
-// 600-699
-#define CPM_STARTCOMPRESS    0x0601
-#define CPM_UPDATEPROGRESS   0x0602
-
 HINSTANCE _G_GUI_GUI_Comp_hpp_H_Instance;
 
 struct CompressionInfos
@@ -26,12 +22,9 @@ struct CompressionInfos
     int * npCompressionStage;
 };
 
-bool StartCompressionWithGUI(CompressionInfos* pCompInfo);
+bool StartCompressionWithGUI(CompressionInfos* pCompInfo, HWND hParentWindow);
 
 #include "GUI-comp.ipp"
 
-
-#undef CPM_STARTCOMPRESS
-#undef CPM_UPDATEPROGRESS
 
 #endif

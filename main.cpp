@@ -32,16 +32,6 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 
 
-// 400 - 499
-#define CWM_REGISTERFILENAME 0x0400
-
-
-
-#define COMPWIZD_WINDOW_WIDTH  500
-#define COMPWIZD_WINDOW_HEIGHT 210
-
-
-
 void SetGlobalHInstance(HINSTANCE hInstance);
 
 HINSTANCE G_H_Instance;

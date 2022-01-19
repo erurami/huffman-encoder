@@ -3,7 +3,7 @@
 
 STRINGTABLE
 {
-    STRING_APPLICATION_NAME "unnamed application"
+    STRING_APPLICATION_NAME "huffman encoder"
 }
 
 MAINMENU MENU

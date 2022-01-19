@@ -3,6 +3,8 @@
 
 #include "libs\libs\huffman.hpp"
 
+#include "wndmessages.h"
+
 #include <windows.h>
 #include <Commctrl.h>
 #include <shlwapi.h>
@@ -13,12 +15,8 @@
 #pragma comment(lib, "Shlwapi.lib")
 
 
-#define _COMP_ENDCODE_SUCCESS               1
-#define _COMP_ENDCODE_ERROR                 2
-#define _COMP_ENDCODE_FAILED_OPENFILE       3
-#define _COMP_ENDCODE_USER_CANCEL           4
 
-
+bool _G_GUI_GUI_comp_ipp_bl_wndclass_registered = false;
 
 LRESULT CALLBACK wndprocCompressionProgress(
         HWND hWnd,
@@ -26,8 +24,12 @@ LRESULT CALLBACK wndprocCompressionProgress(
         WPARAM wp,
         LPARAM lp);
 
-bool StartCompressionWithGUI(CompressionInfos* pCompInfo)
+bool StartCompressionWithGUI(CompressionInfos* pCompInfo, HWND hParentWindow)
 {
+    if (_G_GUI_GUI_comp_ipp_bl_wndclass_registered)
+    {
+        goto SKIP_WNDCLASS_REGISTER;
+    }
 
     WNDCLASS wincProgressGUI;
 
@@ -45,9 +47,13 @@ bool StartCompressionWithGUI(CompressionInfos* pCompInfo)
 
     if (!RegisterClass(&wincProgressGUI))
     {
-        MessageBox(NULL, TEXT("error registering window class"), TEXT("error"), MB_ICONERROR);
+        MessageBox(NULL, TEXT("error registering window class (CompressionProgress)"), TEXT("error"), MB_ICONERROR);
         return false;
     }
+
+    _G_GUI_GUI_comp_ipp_bl_wndclass_registered = true;
+
+SKIP_WNDCLASS_REGISTER:
 
 
 
@@ -72,6 +78,7 @@ bool StartCompressionWithGUI(CompressionInfos* pCompInfo)
 
     ShowWindow(hProgressWnd, SW_SHOW);
 
+    SendMessage(hProgressWnd, CPM_REGISTERPARENT, (WPARAM)hParentWindow, 0);
     SendMessage(hProgressWnd, CPM_STARTCOMPRESS, (WPARAM)pCompInfo, 0);
 
     return true;
@@ -126,6 +133,9 @@ LRESULT CALLBACK wndprocCompressionProgress(
     static HANDLE h_compression_thread;
 
     static DWORD dw_thread_id;
+
+
+    static HWND h_parent_window = NULL;
 
 
 
@@ -284,6 +294,7 @@ LRESULT CALLBACK wndprocCompressionProgress(
 
 
                         KillTimer(hWnd, TIMER_ID_GET_THREAD_STATE);
+                        KillTimer(hWnd, TIMER_ID_UPDATE_PROGRESS);
 
                         switch (dw_thread_state)
                         {
@@ -309,11 +320,15 @@ LRESULT CALLBACK wndprocCompressionProgress(
 
                         }
 
+                        if (h_parent_window != NULL)
+                        {
+                            SendMessage(h_parent_window, CPM_ENDCOMPRESSION, 0, 0);
+                        }
+
                         DeleteObject(h_font_description);
                         DeleteObject(h_font_progress);
                         DeleteObject(h_font_compression_stage);
                         DestroyWindow(hWnd);
-                        PostQuitMessage(0);
                     }
                     break;
             }
@@ -347,6 +362,12 @@ LRESULT CALLBACK wndprocCompressionProgress(
             {
                 PostMessage(h_progress_bar, PBM_SETPOS, wp, 0);
             }
+            return 0;
+
+
+
+        case CPM_REGISTERPARENT:
+            h_parent_window = (HWND)wp;
             return 0;
 
 

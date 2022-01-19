@@ -3,6 +3,8 @@
 
 #include "libs\libs\huffman.hpp"
 
+#include "wndmessages.h"
+
 #include <windows.h>
 #include <Commctrl.h>
 #include <shlwapi.h>
@@ -13,12 +15,8 @@
 #pragma comment(lib, "Shlwapi.lib")
 
 
-#define _EXTC_ENDCODE_SUCCESS               1
-#define _EXTC_ENDCODE_ERROR                 2
-#define _EXTC_ENDCODE_FAILED_OPENFILE       3
-#define _EXTC_ENDCODE_USER_CANCEL           4
 
-
+bool _G_GUI_GUI_extc_ipp_bl_wndclass_registered = false;
 
 LRESULT CALLBACK wndprocExtractionProgress(
         HWND hWnd,
@@ -26,8 +24,12 @@ LRESULT CALLBACK wndprocExtractionProgress(
         WPARAM wp,
         LPARAM lp);
 
-bool StartExtractionWithGUI(ExtractionInfos* pExtcInfo)
+bool StartExtractionWithGUI(ExtractionInfos* pExtcInfo, HWND hParentWindow)
 {
+    if (_G_GUI_GUI_extc_ipp_bl_wndclass_registered)
+    {
+        goto SKIP_WNDCLASS_REGISTER;
+    }
 
     WNDCLASS wincProgressGUI;
 
@@ -45,9 +47,13 @@ bool StartExtractionWithGUI(ExtractionInfos* pExtcInfo)
 
     if (!RegisterClass(&wincProgressGUI))
     {
-        MessageBox(NULL, TEXT("error registering window class"), TEXT("error"), MB_ICONERROR);
+        MessageBox(NULL, TEXT("error registering window class (ExtractionProgress)"), TEXT("error"), MB_ICONERROR);
         return false;
     }
+
+    _G_GUI_GUI_extc_ipp_bl_wndclass_registered = true;
+
+SKIP_WNDCLASS_REGISTER:
 
 
 
@@ -72,6 +78,7 @@ bool StartExtractionWithGUI(ExtractionInfos* pExtcInfo)
 
     ShowWindow(hProgressWnd, SW_SHOW);
 
+    SendMessage(hProgressWnd, EPM_REGISTERPARENT, (WPARAM)hParentWindow, 0);
     SendMessage(hProgressWnd, EPM_STARTEXTRACT, (WPARAM)pExtcInfo, 0);
 
     return true;
@@ -126,6 +133,9 @@ LRESULT CALLBACK wndprocExtractionProgress(
     static HANDLE h_extraction_thread;
 
     static DWORD dw_thread_id;
+
+
+    static HWND h_parent_window = NULL;
 
 
 
@@ -301,11 +311,15 @@ LRESULT CALLBACK wndprocExtractionProgress(
 
                         }
 
+                        if (h_parent_window != NULL)
+                        {
+                            SendMessage(h_parent_window, EPM_ENDEXTRACTION, 0, 0);
+                        }
+
                         DeleteObject(h_font_description);
                         DeleteObject(h_font_progress);
                         DeleteObject(h_font_extraction_stage);
                         DestroyWindow(hWnd);
-                        PostQuitMessage(0);
                     }
                     break;
             }
@@ -339,6 +353,12 @@ LRESULT CALLBACK wndprocExtractionProgress(
             {
                 PostMessage(h_progress_bar, PBM_SETPOS, wp, 0);
             }
+            return 0;
+
+
+
+        case EPM_REGISTERPARENT:
+            h_parent_window = (HWND)wp;
             return 0;
 
 
