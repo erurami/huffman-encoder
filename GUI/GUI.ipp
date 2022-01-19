@@ -316,7 +316,57 @@ LRESULT CALLBACK WndprocMainWindow(
 
 
                 case BUTTON_ID_ENCODE:
-                    break;
+                    {
+                        int n_encode_type = SendMessage(hComboboxEncodeType, CB_GETCURSEL, 0, 0);
+                        if (n_encode_type == 0)
+                        {
+                            CompressionInfos comp_infos;
+
+                            comp_infos.strFrom        = str_file_path_input;
+                            comp_infos.strTo          = str_file_path_output;
+
+                            if (SendMessage(hCheckBoxKeepOriginal, BM_GETCHECK, 0, 0) == BST_CHECKED)
+                            {
+                                comp_infos.blKeepOriginal = true;
+                            }
+                            else
+                            {
+                                comp_infos.blKeepOriginal = false;
+                            }
+
+
+                            if (StartCompressionWithGUI(&comp_infos) == true)
+                            {
+                                DeleteObject(hFontText);
+                                DestroyWindow(hWnd);
+                            }
+                        }
+                        else if (n_encode_type == 1)
+                        {
+                            ExtractionInfos extc_infos;
+
+                            extc_infos.strFrom        = str_file_path_input;
+                            extc_infos.strTo          = str_file_path_output;
+
+                            if (SendMessage(hCheckBoxKeepOriginal, BM_GETCHECK, 0, 0) == BST_CHECKED)
+                            {
+                                extc_infos.blKeepOriginal = true;
+                            }
+                            else
+                            {
+                                extc_infos.blKeepOriginal = false;
+                            }
+
+
+                            // TODO : HIDE window while extraction, SHOW window after extraction.
+                            if (StartExtractionWithGUI(&extc_infos) == true)
+                            {
+                                DeleteObject(hFontText);
+                                DestroyWindow(hWnd);
+                            }
+                        }
+                        break;
+                    }
 
 
                 case MENUID_OPEN:
@@ -367,6 +417,7 @@ LRESULT CALLBACK WndprocMainWindow(
                 hDroppedInfos = (HDROP)wp;
 
                 // todo : Support multiple files.
+                // TODO : do not accept foders.
                 DragQueryFileA(hDroppedInfos, 0, str_file_path_input, MAX_PATH);
 
                 DragFinish(hDroppedInfos);

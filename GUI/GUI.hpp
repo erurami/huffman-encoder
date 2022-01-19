@@ -23,5 +23,6 @@ int MainApplication(void);
 
 #undef MM_INPUTSELECTED
 #undef MM_OUTPUTSELECTED
+#undef MM_GENERATEOUTPUT
 
 #endif

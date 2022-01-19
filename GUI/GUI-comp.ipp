@@ -7,15 +7,17 @@
 #include <Commctrl.h>
 #include <shlwapi.h>
 
+#pragma comment(lib,"User32.lib")
+#pragma comment(lib,"gdi32.lib")
+#pragma comment(lib, "Comdlg32.lib")
+#pragma comment(lib, "Shlwapi.lib")
+
 
 #define _COMP_ENDCODE_SUCCESS               1
 #define _COMP_ENDCODE_ERROR                 2
 #define _COMP_ENDCODE_FAILED_OPENFILE       3
 #define _COMP_ENDCODE_USER_CANCEL           4
 
-
-#define CPM_STARTCOMPRESS    0x0401
-#define CPM_UPDATEPROGRESS   0x0402
 
 
 LRESULT CALLBACK wndprocCompressionProgress(
@@ -366,7 +368,7 @@ LRESULT CALLBACK wndprocCompressionProgress(
                     else
                     {
                         SuspendThread(h_compression_thread);
-                        SetWindowText(h_button_playpause, TEXT("Play"));
+                        SetWindowText(h_button_playpause, TEXT("Resume"));
                     }
                     bl_is_paused = !bl_is_paused;
                     break;
@@ -403,6 +405,7 @@ LRESULT CALLBACK wndprocCompressionProgress(
             return DefWindowProc(hWnd, msg, wp, lp);
     }
 }
+
 #undef TIMER_ID_UPDATE_PROGRESS
 #undef TIMER_ID_GET_THREAD_STATE
 
@@ -410,7 +413,7 @@ LRESULT CALLBACK wndprocCompressionProgress(
 #undef BUTTON_ID_PLAYPAUSE
 
 
-struct ProgressUpdateInfos
+struct _Comp_ProgressUpdateInfos
 {
     int * npStage;
     long* npProgress;
@@ -425,7 +428,7 @@ DWORD WINAPI ThreadProcCompress(LPVOID vdParam)
     comp_infos = *(CompressionInfos*)vdParam;
 
 
-    ProgressUpdateInfos prog_update_infos;
+    _Comp_ProgressUpdateInfos prog_update_infos;
     prog_update_infos.npStage    = comp_infos.npCompressionStage;
     prog_update_infos.npProgress = comp_infos.npProgress;
 
@@ -465,16 +468,14 @@ DWORD WINAPI ThreadProcCompress(LPVOID vdParam)
 
 void CallbackForCompression(long progress, int stage, void* param)
 {
-    *(((ProgressUpdateInfos*)param)->npStage)    = stage;
+    *(((_Comp_ProgressUpdateInfos*)param)->npStage)    = stage;
 
-    *(((ProgressUpdateInfos*)param)->npProgress) = progress;
+    *(((_Comp_ProgressUpdateInfos*)param)->npProgress) = progress;
 }
 
+#undef _COMP_ENDCODE_SUCCESS
+#undef _COMP_ENDCODE_ERROR
+#undef _COMP_ENDCODE_FAILED_OPENFILE
+#undef _COMP_ENDCODE_USER_CANCEL
 
 
-
-
-
-
-#undef CPM_STARTCOMPRESS
-#undef CPM_UPDATEPROGRESS

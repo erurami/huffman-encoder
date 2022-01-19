@@ -1,13 +1,4 @@
 
-// if you don't want .manifest file in your directory, you can run this command
-//      ```
-//      mt.exe -manifest main.exe.manifest -outputresource:main.exe;1
-//      ```
-//
-// otherwise you need .manifest to keep visual style of this app, and if you 
-// delete .manifest without the command, the app will look "old".
-//
-
 #pragma comment(lib,"User32.lib")
 #pragma comment(lib,"gdi32.lib")
 #pragma comment(lib, "Comdlg32.lib")
@@ -392,7 +383,6 @@ LRESULT CALLBACK WndprocCompressionWizard(
                         CompressionInfos comp_infos;
 
                         comp_infos.strFrom        = str_file_path_from;
-                        // TODO : check file name.
                         comp_infos.strTo          = str_file_path_to;
 
                         if (SendMessage(hKeepOrgFileCheckBox, BM_GETCHECK, 0, 0) == BST_CHECKED)
