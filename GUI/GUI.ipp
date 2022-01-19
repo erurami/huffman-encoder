@@ -407,12 +407,16 @@ LRESULT CALLBACK WndprocMainWindow(
 
 
         case CPM_ENDCOMPRESSION:
+            SendMessage(hCheckBoxKeepOriginal, BM_SETCHECK, BST_CHECKED, 0);
+
             ShowWindow(hWnd, SW_SHOW);
             return 0;
 
 
 
         case EPM_ENDEXTRACTION:
+            SendMessage(hCheckBoxKeepOriginal, BM_SETCHECK, BST_CHECKED, 0);
+
             ShowWindow(hWnd, SW_SHOW);
             return 0;
 

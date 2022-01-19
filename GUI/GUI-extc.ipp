@@ -433,7 +433,6 @@ struct _Extc_ProgressUpdateInfos
 
 void CallbackForExtraction(long progress, int stage, void* param);
 
-// TODO : delete original file if the keeporiginal checkbox unchecked.
 DWORD WINAPI ThreadProcExtract(LPVOID vdParam)
 {
     ExtractionInfos extc_infos;
@@ -472,6 +471,15 @@ DWORD WINAPI ThreadProcExtract(LPVOID vdParam)
 
     fclose(p_file1);
     fclose(p_file2);
+
+
+    if (extc_infos.blKeepOriginal == false)
+    {
+        if (DeleteFile(extc_infos.strFrom) == 0)
+        {
+            MessageBox(NULL, TEXT("failed to delete original file"), TEXT(""), MB_ICONINFORMATION);
+        }
+    }
 
 
     ExitThread(_EXTC_ENDCODE_SUCCESS);
