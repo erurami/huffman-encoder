@@ -2,12 +2,15 @@
 @echo off
 
 
-call rc GUI\\resources\\resource.rc
 
-if "%errorlevel%" == "9009" (
-    echo rc not installed
+call %cd%\\buildfiles\\check-dependencies.cmd
+
+if "%abletobuild%" == "false" (
     goto EOF
 )
+
+
+call rc GUI\\resources\\resource.rc
 
 if errorlevel 1 (
     goto EOF
@@ -16,22 +19,12 @@ if errorlevel 1 (
 
 call cl main.cpp GUI\\resources\\resource.res /W4
 
-if "%errorlevel%" == "9009" (
-    echo cl not installed
-    goto EOF
-)
-
 if errorlevel 1 (
     goto EOF
 )
 
 
 call mt.exe -manifest main.exe.manifest -outputresource:main.exe;1
-
-if "%errorlevel%" == "9009" (
-    echo mt not installed
-    goto EOF
-)
 
 if errorlevel 1 (
     goto EOF
