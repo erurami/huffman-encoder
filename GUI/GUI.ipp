@@ -117,6 +117,7 @@ LRESULT CALLBACK WndprocMainWindow(
 
     static HWND hStaticBackground;
 
+    static HWND hStaticInput;
     static HWND hEditInputFilePath;
 
     static HWND hStaticEncodeType;
@@ -172,10 +173,16 @@ LRESULT CALLBACK WndprocMainWindow(
 
 
 
+            hStaticInput = CreateWindow(
+                    TEXT("STATIC"), TEXT("Input : "),
+                    WS_CHILD | WS_VISIBLE,
+                    10, 10, 80, 20,
+                    hWnd, NULL, _G_GUI_GUI_hpp_H_Instance, NULL);
+
             hEditInputFilePath = CreateWindow(
                     TEXT("EDIT"), TEXT(""),
                     WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL,
-                    10, 10, window_width - 20, 20,
+                    100, 10, window_width - 110, 20,
                     hWnd, NULL, _G_GUI_GUI_hpp_H_Instance, NULL);
 
 
@@ -220,11 +227,12 @@ LRESULT CALLBACK WndprocMainWindow(
             hButtonEncode = CreateWindow(
                     TEXT("BUTTON"), TEXT("Encode"),
                     WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-                    window_width - 75, window_height - 65, 70, 50,
+                    window_width - 75, window_height - 65, 65, 50,
                     hWnd, (HMENU)BUTTON_ID_ENCODE, _G_GUI_GUI_hpp_H_Instance, NULL);
 
 
 
+            SendMessage(hStaticInput                , WM_SETFONT, (WPARAM)hFontText, TRUE);
             SendMessage(hEditInputFilePath          , WM_SETFONT, (WPARAM)hFontText, TRUE);
             SendMessage(hStaticEncodeType           , WM_SETFONT, (WPARAM)hFontText, TRUE);
             SendMessage(hComboboxEncodeType         , WM_SETFONT, (WPARAM)hFontText, TRUE);
