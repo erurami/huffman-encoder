@@ -8,6 +8,7 @@
 #include <windows.h>
 #include <shellapi.h>
 #include <shlwapi.h>
+#include <stdlib.h>
 
 #pragma comment(lib, "gdi32.lib"  )
 #pragma comment(lib, "Shell32.lib")
@@ -27,7 +28,7 @@ LRESULT CALLBACK WndprocMainWindow(
         WPARAM wp,
         LPARAM lp);
 
-int MainApplication(void)
+int MainApplication(LPTSTR strInputPath)
 {
 
     WNDCLASS wincMainWnd;
@@ -69,6 +70,11 @@ int MainApplication(void)
 
 
     ShowWindow(hMainWnd, SW_SHOW);
+
+    if (strInputPath != NULL)
+    {
+        SendMessage(hMainWnd, MM_SETINPUT, (WPARAM)strInputPath, 0);
+    }
 
     MSG msg;
 
@@ -228,6 +234,8 @@ LRESULT CALLBACK WndprocMainWindow(
             SendMessage(hButtonBrouseOutputFilePath , WM_SETFONT, (WPARAM)hFontText, TRUE);
             SendMessage(hButtonEncode               , WM_SETFONT, (WPARAM)hFontText, TRUE);
 
+            SendMessage(hCheckBoxKeepOriginal, BM_SETCHECK, BST_CHECKED, 0);
+
             SendMessage(hComboboxEncodeType, CB_ADDSTRING, 0, (LPARAM)strCompress);
             SendMessage(hComboboxEncodeType, CB_ADDSTRING, 0, (LPARAM)strExtract);
             SendMessage(hComboboxEncodeType, CB_SETCURSEL, 0, 0);
@@ -237,6 +245,15 @@ LRESULT CALLBACK WndprocMainWindow(
 
             return 0;
             }
+
+
+
+        case WM_KEYDOWN:
+            if (wp == VK_RETURN)
+            {
+                PostMessage(hWnd, MM_STARTENCODE, 0, 0);
+            }
+            return 0;
 
 
 
@@ -316,57 +333,8 @@ LRESULT CALLBACK WndprocMainWindow(
 
 
                 case BUTTON_ID_ENCODE:
-                    {
-                        int n_encode_type = SendMessage(hComboboxEncodeType, CB_GETCURSEL, 0, 0);
-                        if (n_encode_type == 0)
-                        {
-                            CompressionInfos comp_infos;
-
-                            comp_infos.strFrom        = str_file_path_input;
-                            comp_infos.strTo          = str_file_path_output;
-
-                            if (SendMessage(hCheckBoxKeepOriginal, BM_GETCHECK, 0, 0) == BST_CHECKED)
-                            {
-                                comp_infos.blKeepOriginal = true;
-                            }
-                            else
-                            {
-                                comp_infos.blKeepOriginal = false;
-                            }
-
-
-                            if (StartCompressionWithGUI(&comp_infos) == true)
-                            {
-                                DeleteObject(hFontText);
-                                DestroyWindow(hWnd);
-                            }
-                        }
-                        else if (n_encode_type == 1)
-                        {
-                            ExtractionInfos extc_infos;
-
-                            extc_infos.strFrom        = str_file_path_input;
-                            extc_infos.strTo          = str_file_path_output;
-
-                            if (SendMessage(hCheckBoxKeepOriginal, BM_GETCHECK, 0, 0) == BST_CHECKED)
-                            {
-                                extc_infos.blKeepOriginal = true;
-                            }
-                            else
-                            {
-                                extc_infos.blKeepOriginal = false;
-                            }
-
-
-                            // TODO : HIDE window while extraction, SHOW window after extraction.
-                            if (StartExtractionWithGUI(&extc_infos) == true)
-                            {
-                                DeleteObject(hFontText);
-                                DestroyWindow(hWnd);
-                            }
-                        }
-                        break;
-                    }
+                    PostMessage(hWnd, MM_STARTENCODE, 0, 0);
+                    break;
 
 
                 case MENUID_OPEN:
@@ -400,6 +368,18 @@ LRESULT CALLBACK WndprocMainWindow(
                     PostMessage(hWnd, WM_CLOSE, 0, 0);
                     break;
 
+
+                case MENUID_COMPRESS:
+                    SendMessage(hComboboxEncodeType, CB_SETCURSEL, 0, 0);
+                    PostMessage(hWnd, MM_STARTENCODE, 0, 0);
+                    break;
+
+
+                case MENUID_EXTRACT:
+                    SendMessage(hComboboxEncodeType, CB_SETCURSEL, 1, 0);
+                    PostMessage(hWnd, MM_STARTENCODE, 0, 0);
+                    break;
+
             }
             return 0;
 
@@ -424,6 +404,77 @@ LRESULT CALLBACK WndprocMainWindow(
 
                 SendMessage(hWnd, MM_INPUTSELECTED, 0, 0);
             }
+            return 0;
+
+
+
+        case MM_STARTENCODE:
+            if (!bl_is_input_selected || !bl_is_output_selected)
+            {
+                MessageBox(hWnd, TEXT("Please select file first"), TEXT(""), MB_ICONINFORMATION);
+                return 0;
+            }
+            if (MessageBox(hWnd, TEXT("Start endoding?"), TEXT(""), MB_ICONQUESTION | MB_OKCANCEL | MB_DEFBUTTON1) == IDOK)
+            {
+                int n_encode_type = SendMessage(hComboboxEncodeType, CB_GETCURSEL, 0, 0);
+                if (n_encode_type == 0)
+                {
+                    CompressionInfos comp_infos;
+
+                    comp_infos.strFrom        = str_file_path_input;
+                    comp_infos.strTo          = str_file_path_output;
+
+                    if (SendMessage(hCheckBoxKeepOriginal, BM_GETCHECK, 0, 0) == BST_CHECKED)
+                    {
+                        comp_infos.blKeepOriginal = true;
+                    }
+                    else
+                    {
+                        comp_infos.blKeepOriginal = false;
+                    }
+
+
+                    if (StartCompressionWithGUI(&comp_infos) == true)
+                    {
+                        DeleteObject(hFontText);
+                        DestroyWindow(hWnd);
+                    }
+                }
+                else if (n_encode_type == 1)
+                {
+                    ExtractionInfos extc_infos;
+
+                    extc_infos.strFrom        = str_file_path_input;
+                    extc_infos.strTo          = str_file_path_output;
+
+                    if (SendMessage(hCheckBoxKeepOriginal, BM_GETCHECK, 0, 0) == BST_CHECKED)
+                    {
+                        extc_infos.blKeepOriginal = true;
+                    }
+                    else
+                    {
+                        extc_infos.blKeepOriginal = false;
+                    }
+
+
+                    // TODO : HIDE window while extraction, SHOW window after extraction.
+                    if (StartExtractionWithGUI(&extc_infos) == true)
+                    {
+                        DeleteObject(hFontText);
+                        DestroyWindow(hWnd);
+                    }
+                }
+            }
+            return 0;
+
+
+
+        case MM_SETINPUT:
+            if (_fullpath(str_file_path_input, (LPTSTR)wp, MAX_PATH) == NULL)
+            {
+                return 0;
+            }
+            SendMessage(hWnd, MM_INPUTSELECTED, 0, 0);
             return 0;
 
 

@@ -14,4 +14,9 @@ MAINMENU MENU
         MENUITEM SEPARATOR
         MENUITEM "exit", MENUID_EXIT
     }
+    POPUP "encode(&E)"
+    {
+        MENUITEM "compress(&c)", MENUID_COMPRESS
+        MENUITEM "extract(&e)", MENUID_EXTRACT
+    }
 }
