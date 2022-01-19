@@ -5,13 +5,6 @@
 #include <windows.h>
 
 
-// 500 - 599
-#define MM_INPUTSELECTED  0x500
-#define MM_OUTPUTSELECTED 0x501
-#define MM_GENERATEOUTPUT 0x502
-#define MM_SETINPUT       0x503
-#define MM_STARTENCODE    0x504
-
 #define MAIN_WINDOW_WIDTH  600
 #define MAIN_WINDOW_HEIGHT 170
 
